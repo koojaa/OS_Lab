@@ -97,16 +97,33 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+// use argint() to get the arguments - syscall.c
 uint64
 sys_setpgid(void)
 {
-  // todo
-  return 0;
+  int pid, pgid;
+  argint(0, &pid);
+  if (pid < 0)
+    return -1;
+  argint(1, &pgid);
+  if (pgid < 0)
+    return -1;
+  if (pid == 0)
+    pid = myproc()->pid;
+  if (pgid == 0)
+    pgid = pid;
+  return setpgid(pid, pgid);
 }
 
 uint64
 sys_getpgid(void)
 {
-  // todo
-  return 0;
+  int pid;
+  argint(0, &pid);
+  if (pid < 0)
+    return -1;
+  if (pid == 0)
+    return myproc()->pgid;
+  return getpgid(pid);
 }

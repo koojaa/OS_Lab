@@ -260,6 +260,8 @@ int fork(void)
     return -1;
   }
 
+  np->pgid = p->pgid;
+
   // Copy user memory from parent to child.
   if (uvmcopy(p->pagetable, np->pagetable, p->sz) < 0)
   {
@@ -267,7 +269,6 @@ int fork(void)
     release(&np->lock);
     return -1;
   }
-  np->pgid = p->pgid;
   np->sz = p->sz;
 
   np->parent = p;
@@ -494,7 +495,7 @@ void scheduler(void)
 // be proc->intena and proc->noff, but that would
 // break in the few places where a lock is held but
 // there's no process.
-voidsched(void)
+void sched(void)
 {
   int intena;
   struct proc *p = myproc();
@@ -692,7 +693,45 @@ void procdump(void)
       state = states[p->state];
     else
       state = "???";
-    printf("%d %s %s", p->pid, state, p->name);
+    printf("%d %d %s %s", p->pid, p->pgid, state, p->name);
     printf("\n");
   }
+}
+
+// parameter pid validation already completed in syproc.c
+int getpgid(int pid)
+{
+  struct proc *p;
+  for (p = proc; p < &proc[NPROC]; p++)
+  {
+    acquire(&p->lock);
+    if (p->pid == pid)
+    {
+      int pgid = p->pgid;
+      release(&p->lock);
+      return pgid;
+    }
+    release(&p->lock);
+  }
+  // not found
+  return -1;
+}
+
+// parameter pid validation already completed in syproc.c
+int setpgid(int pid, int pgid)
+{
+  struct proc *p;
+  for (p = proc; p < &proc[NPROC]; p++)
+  {
+    acquire(&p->lock);
+    if (p->pid == pid)
+    {
+      p->pgid = pgid;
+      release(&p->lock);
+      return 0;
+    }
+    release(&p->lock);
+  }
+  // not found
+  return -1;
 }
