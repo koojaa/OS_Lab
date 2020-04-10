@@ -1,7 +1,8 @@
 # SNU ----------------------------------------------------
 # Please specify the PA number and your student ID:
-PANUM = PA2
-STUDENTID = 2014-18648
+PANUM = PA3
+STUDENTID = 
+>>>>>>> 52ba5b10726c1a12b2af4e09a455fbadaef22efa
 
 ifndef PANUM
 $(error Please set PANUM in Makefile)
@@ -145,7 +146,9 @@ UPROGS=\
 	$U/_wc\
 	$U/_zombie\
 	$U/_setpgid\
-	$U/_getpgid\
+  $U/_getpgid\
+  $U/_infloop\
+  $U/_fork10\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
