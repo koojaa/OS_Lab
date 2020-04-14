@@ -808,8 +808,10 @@ int getpgid(int pid)
 }
 
 // parameter pid validation already completed in syproc.c
+int currpgid = -1;
 int setpgid(int pid, int pgid)
 {
+  currpgid = pgid;
   struct proc *p;
   for (p = proc; p < &proc[NPROC]; p++)
   {
@@ -824,4 +826,14 @@ int setpgid(int pid, int pgid)
   }
   // not found
   return -1;
+}
+
+int getcurrpgid()
+{
+  return currpgid;
+}
+
+void killprocs(int currpgid)
+{
+  kill((-1) * currpgid);
 }
