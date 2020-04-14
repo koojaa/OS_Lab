@@ -613,27 +613,117 @@ wakeup1(struct proc *p)
 // Kill the process with the given pid.
 // The victim won't exit until it tries to return
 // to user space (see usertrap() in trap.c).
+
+// Kill extension
+// TYPE1 - If pid is positive, then the process with the specified pid is terminated.
+// TYPE2 - If pid is zero, then every process in the process group of the calling process is terminated.
+// TYPE3 - If pid is negative, then every process in the process group whose ID (PGID) is -pid is terminated.
+
 int kill(int pid)
 {
-  struct proc *p;
+  // killing init process is invalid
+  if (pid == 1 || pid == -1)
+    return -1;
 
-  for (p = proc; p < &proc[NPROC]; p++)
+  // total number of processes been killed
+  int termNum = 0;
+  // TYPE 2
+  int callingProcessGroupId = -1;
+  // TYPE 3
+  int targetPGID = -1;
+
+  int type = -1;
+  if (pid > 0)
+    type = 1;
+  else if (pid == 0)
+    type = 2;
+  else
+    type = 3;
+
+  struct proc *p;
+  struct proc *my_pr = myproc();
+
+  if (type == 1)
   {
-    acquire(&p->lock);
-    if (p->pid == pid)
+    for (p = proc; p < &proc[NPROC]; p++)
     {
-      p->killed = 1;
-      if (p->state == SLEEPING)
+      acquire(&p->lock);
+      if (p->pid == pid)
       {
-        // Wake process from sleep().
-        p->state = RUNNABLE;
+        p->killed = 1;
+        if (p->state == SLEEPING)
+        {
+          // Wake process from sleep().
+          // later call exit() when usertrap.
+          p->state = RUNNABLE;
+        }
+
+        release(&p->lock);
+        return 0;
       }
       release(&p->lock);
-      return 0;
     }
-    release(&p->lock);
   }
-  return -1;
+  else if (type == 2)
+  {
+    callingProcessGroupId = my_pr->pgid;
+    for (p = proc; p < &proc[NPROC]; p++)
+    {
+      acquire(&p->lock);
+
+      if (p->pgid == callingProcessGroupId)
+      {
+        p->killed = 1;
+        termNum++;
+
+        if (p->state == SLEEPING)
+        {
+          p->state = RUNNABLE;
+        }
+        release(&p->lock);
+        continue;
+      }
+
+      release(&p->lock);
+    }
+
+    //    termNum--;
+    //    if (termNum > 0)
+    //    {
+    //      return 0;
+    //    }
+    //    else
+    //    {
+    //      return -1;
+    //    }
+  }
+  else if (type == 3)
+  {
+    targetPGID = pid * (-1);
+    for (p = proc; p < &proc[NPROC]; p++)
+    {
+      acquire(&p->lock);
+
+      if (p->pgid == targetPGID)
+      {
+        p->killed = 1;
+        termNum++;
+        if (p->state == SLEEPING)
+        {
+          p->state = RUNNABLE;
+        }
+        release(&p->lock);
+        continue;
+      }
+
+      release(&p->lock);
+    }
+  }
+
+  if (termNum > 0)
+    return 0;
+  else
+    return -1;
 }
 
 // Copy to either a user address, or kernel address,
