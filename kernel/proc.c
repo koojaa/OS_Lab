@@ -648,7 +648,7 @@ int kill(int pid)
     for (p = proc; p < &proc[NPROC]; p++)
     {
       acquire(&p->lock);
-      if (p->pid == pid)
+      if ((p->pid == pid) && (p->state == SLEEPING || p->state == RUNNING || p->state == ZOMBIE))
       {
         p->killed = 1;
         if (p->state == SLEEPING)
@@ -671,7 +671,7 @@ int kill(int pid)
     {
       acquire(&p->lock);
 
-      if (p->pgid == callingProcessGroupId)
+      if ((p->pgid == callingProcessGroupId) && (p->state == SLEEPING || p->state == RUNNING || p->state == ZOMBIE))
       {
         p->killed = 1;
         termNum++;
@@ -704,7 +704,7 @@ int kill(int pid)
     {
       acquire(&p->lock);
 
-      if (p->pgid == targetPGID)
+      if ((p->pgid == targetPGID) && (p->state == SLEEPING || p->state == RUNNING || p->state == ZOMBIE))
       {
         p->killed = 1;
         termNum++;
